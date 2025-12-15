@@ -996,7 +996,7 @@
                 startProcessing(); // 啟用防呆
                 const context = mode==='quiz' ? `選擇:${input.join(',')}` : `設定:${roleName}`;
                 const prompt = `玩家創角資料: ${context}。目標: 5天內賺10,000G。請生成背景故事。
-                回傳JSON格式: {"story": "故事內容(約200字)", "title": "職業稱號", "stats": {"negotiation": 0-5, "insight": 0-5, "luck": 0-5, "gold": 1500-2500}}`;
+                回傳JSON格式: {"story": "故事內容(約200字)", "title": "職業稱號", "stats": {"negotiation": 0-5, "insight": 0-5, "luck": 0-5, "gold": 1500000}}`;
                 
                 try {
                     const jsonStr = await callGemini(prompt, true);
@@ -1876,4 +1876,5 @@
         }
     </script>
 </body>
+
 </html>
