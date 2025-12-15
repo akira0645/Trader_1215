@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>奇珍行商</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&display=swap');
+        
+        :root {
+            --bg-color: #0f1115;
+            --bg-gradient-start: #1f2937;
+            --bg-gradient-end: #0f1115;
+            --panel-bg: rgba(30, 41, 59, 0.85); /* Darker, more glass effect */
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent-color: #facc15; /* Yellow */
+            --accent-glow: rgba(250, 204, 21, 0.4);
+            --text-main: #e5e5e5;
+            --text-dim: #9ca3af;
+        }
+
+        /* 惡魔契約模式變數 */
+        body.contract-mode {
+            --bg-gradient-start: #450a0a;
+            --bg-gradient-end: #000000;
+            --panel-bg: rgba(40, 10, 10, 0.85); /* Blood Red */
+            --border-color: rgba(220, 38, 38, 0.6);
+            --accent-color: #f87171; /* Light Red */
+            --accent-glow: rgba(239, 68, 68, 0.7);
+            --text-main: #fecaca;
+        }
+
+        body {
+            font-family: 'Noto Serif TC', serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 50% 0%, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            color: var(--text-main);
+            transition: background-image 1s ease, background-color 1s ease, color 0.5s ease;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 捲軸美化 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
+
+        /* 玻璃擬態面板 */
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0 5px rgba(255,255,255,0.05); /* Inner white glow */
+            transition: all 0.5s ease;
+        }
+        
+        body.contract-mode .glass-panel {
+            box-shadow: 0 0 20px var(--accent-glow), inset 0 0 8px rgba(255, 255, 255, 0.1);
+        }
+
+        .game-log {
+            height: 100%;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse; 
+            padding-right: 10px;
+            mask-image: linear-gradient(to bottom, transparent, black 5%);
+        }
+
+        .fade-in { animation: fadeIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards; opacity: 0; transform: translateY(10px); }
+        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+
+        /* 特殊文字效果 */
+        .welcome-msg {
+            font-size: 2rem;
+            font-weight: 700;
+            text-align: center;
+            color: var(--accent-color);
+            text-shadow: 0 0 15px var(--accent-glow);
+            margin: 2rem 0;
+            letter-spacing: 0.1em;
+            animation: zoomIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+        }
+        @keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .devil-text { color: #f87171; text-shadow: 0 0 8px rgba(239, 68, 68, 0.6); font-style: italic; }
+        .church-text { color: #60a5fa; text-shadow: 0 0 8px rgba(59, 130, 246, 0.6); }
+        .important-text { color: var(--accent-color); font-weight: bold; }
+        
+        /* 日誌中的高亮字體 */
+        .game-log strong {
+            color: var(--accent-color);
+            text-shadow: 0 0 3px var(--accent-glow);
+        }
+        /* 提升 contract-mode 下灰色文本的亮度 */
+        body.contract-mode .game-log .text-gray-500 {
+            color: #a3a3a3; /* Light Gray */
+        }
+
+
+        /* 按鈕樣式 */
+        .btn-action {
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            background: linear-gradient(to bottom, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        .btn-action:hover:not(:disabled) {
+            transform: translateY(-2px);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px var(--accent-glow);
+            color: var(--accent-color);
+        }
+        .btn-action:active:not(:disabled) { transform: translateY(1px) scale(0.98); }
+        .btn-action:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(100%); }
+
+        /* 特殊按鈕 (金色/紅色) */
+        .btn-primary { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.4); }
+        .btn-primary:hover:not(:disabled) { background: rgba(59, 130, 246, 0.4); border-color: #60a5fa; color: white; box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); }
+
+        .btn-gold { background: rgba(234, 179, 8, 0.2); border-color: rgba(234, 179, 8, 0.4); }
+        .btn-gold:hover:not(:disabled) { background: rgba(234, 179, 8, 0.4); border-color: #facc15; color: white; box-shadow: 0 0 15px rgba(234, 179, 8, 0.4); }
+        
+        .btn-danger { background: rgba(220, 38, 38, 0.2); border-color: rgba(220, 38, 38, 0.4); }
+        .btn-danger:hover:not(:disabled) { background: rgba(220, 38, 38, 0.4); border-color: #f87171; color: white; box-shadow: 0 0 15px rgba(220, 38, 38, 0.4); }
+        
+        /* 修正的惡魔契約按鈕樣式 */
+        .btn-blood-contract {
+            background-color: #3b0764 !important; /* Deep Purple/Black */
+            border-color: #dc2626 !important; /* Red Border */
+            color: #fef2f2 !important; /* White/Light Red Text */
+            box-shadow: 0 0 15px rgba(220, 38, 38, 0.8); /* Strong Red Glow */
+            animation: pulse-red 2s infinite ease-in-out;
+            transform-style: preserve-3d;
+        }
+        .btn-blood-contract:hover:not(:disabled) {
+            background-color: #6d0a0a !important; /* Darker Red on hover */
+            border-color: #f87171 !important;
+            box-shadow: 0 0 30px rgba(248, 113, 113, 1);
+            transform: scale(1.03) translateZ(5px);
+            color: #ffcccc !important;
+        }
+
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 15px rgba(220, 38, 38, 0.8); }
+            50% { box-shadow: 0 0 25px rgba(248, 113, 113, 1); }
+        }
+
+        /* 物品卡片 */
+        .item-card, .intel-card {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: help; 
+            transition: all 0.3s ease;
+        }
+        .item-card:hover, .intel-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--accent-color);
+            transform: translateX(4px);
+            box-shadow: -4px 0 10px -2px var(--accent-glow);
+        }
+
+        .intel-card {
+            border-left: 3px solid #60a5fa;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        /* 標籤頁 */
+        .tab-btn { transition: all 0.3s; border-bottom: 2px solid transparent; opacity: 0.6; }
+        .tab-btn:hover { opacity: 1; color: var(--accent-color); }
+        .tab-active { 
+            opacity: 1;
+            color: var(--accent-color) !important; 
+            border-bottom-color: var(--accent-color); 
+            text-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        /* 條紋動畫背景 (用於體力條等) */
+        .progress-bar {
+            background-size: 1rem 1rem;
+            background-image: linear-gradient(45deg,rgba(255,255,255,.1) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.1) 50%,rgba(255,255,255,.1) 75%,transparent 75%,transparent);
+            animation: progress-stripes 2s linear infinite;
+        }
+        @keyframes progress-stripes { from { background-position: 1rem 0; } to { background-position: 0 0; } }
+
+        /* 契約簽訂後的特效 */
+        body.contract-mode .item-card:hover { border-color: #f87171; box-shadow: -4px 0 10px -2px rgba(248, 113, 113, 0.4); }
+        body.contract-mode .tab-active { color: #f87171 !important; border-bottom-color: #f87171; text-shadow: 0 0 10px rgba(248, 113, 113, 0.5); }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-gray-200">
+
+    <!-- Header -->
+    <header class="glass-panel border-b-0 p-4 flex justify-between items-center z-10 relative">
+        <div class="flex items-center gap-3">
+            <div class="bg-white/5 p-2 rounded-full border border-white/10">
+                <i class="fas fa-scroll text-yellow-500 text-xl" style="color: var(--accent-color);"></i>
+            </div>
+            <h1 class="text-xl font-bold tracking-widest uppercase" style="color: var(--text-main); text-shadow: 0 2px 5px rgba(0,0,0,0.5);">奇珍行商</h1>
+        </div>
+        <div class="flex gap-3 items-center">
+            <div id="api-status-container" class="text-xs text-gray-400 bg-black/30 px-3 py-1 rounded-full border border-gray-700 flex items-center gap-2 shadow-inner">
+                <div id="api-status-dot" class="w-2 h-2 rounded-full bg-gray-500 shadow-[0_0_5px_rgba(107,114,128,0.8)]"></div> 
+                <span id="api-status-text">模擬模式</span>
+                <button id="btn-retry-api" onclick="confirmApiKey()" class="hidden text-blue-400 hover:text-blue-300 underline ml-1">[↻ 重連]</button>
+            </div>
+            <button onclick="showHelpModal()" class="text-gray-400 hover:text-yellow-400 transition-all transform hover:scale-110 hover:rotate-12" title="遊戲說明">
+                <i class="fas fa-question-circle text-2xl"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game Area -->
+    <div class="flex flex-1 overflow-hidden relative">
+        
+        <!-- Sidebar: Stats -->
+        <aside class="w-1/4 glass-panel border-r-0 border-r-white/5 p-5 flex flex-col gap-5 overflow-y-auto z-10 scrollbar-hide">
+            
+            <!-- Character Info -->
+            <div class="bg-black/30 rounded-lg p-4 border border-white/5 shadow-inner">
+                <h2 class="text-xs font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 pb-2 border-b border-white/5">
+                    Character Status
+                </h2>
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between"><span class="text-gray-500">職業:</span> <span id="char-role" class="text-white font-bold tracking-wide" style="color: var(--accent-color);">未定</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">天數:</span> <span id="day-display" class="text-gray-300">第 1 / 5 天</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">目標:</span> <span class="text-green-400 font-bold font-mono">10,000 G</span></div>
+                    
+                    <div class="grid grid-cols-2 gap-2 mt-2">
+                        <div class="bg-black/20 p-2 rounded border border-white/5 text-center group hover:bg-black/40 transition-colors">
+                            <div class="text-[10px] text-gray-500 mb-1 uppercase">Gold</div>
+                            <div id="gold-display" class="text-yellow-400 font-bold text-lg font-mono group-hover:text-yellow-300">100 G</div>
+                        </div>
+                        <div class="bg-black/20 p-2 rounded border border-white/5 text-center group hover:bg-black/40 transition-colors">
+                            <div class="text-[10px] text-gray-500 mb-1 uppercase">Bank</div>
+                            <div id="bank-display" class="text-blue-400 font-bold text-lg font-mono group-hover:text-blue-300">0 G</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <div class="flex justify-between text-xs mb-1 text-gray-400"><span>體力</span> <span id="stamina-text">10/10</span></div>
+                        <div class="w-full bg-gray-900 rounded-full h-1.5 overflow-hidden border border-white/10">
+                            <div id="stamina-bar" class="h-full bg-green-500 rounded-full transition-all duration-500 progress-bar shadow-[0_0_8px_rgba(34,197,94,0.5)]" style="width: 100%"></div>
+                        </div>
+                    </div>
+
+                    <div id="contract-badge" class="hidden mt-4 bg-red-900/20 border border-red-500/30 text-red-400 px-3 py-2 rounded text-center text-xs font-bold tracking-wider shadow-[0_0_15px_rgba(220,38,38,0.15)]">
+                        <i class="fas fa-file-signature mr-2"></i> 已簽訂靈魂契約
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Attributes -->
+            <div class="bg-black/30 rounded-lg p-4 border border-white/5 shadow-inner">
+                <h2 class="text-xs font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 pb-2 border-b border-white/5">
+                    Abilities
+                </h2>
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between items-center group cursor-help relative hover:bg-white/5 p-1 rounded transition-colors">
+                        <span class="text-gray-400 group-hover:text-gray-200"><i class="fas fa-handshake w-5 text-center opacity-70"></i> 談判技巧</span>
+                        <span class="text-white font-bold text-lg font-mono"><span id="stat-negotiation">0</span> <span id="neg-boost" class="text-xs text-green-400 hidden">(+0)</span></span>
+                        <div class="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-black/90 text-xs p-2 rounded border border-gray-700 z-50 whitespace-nowrap shadow-xl">影響殺價成功率與賣出價格</div>
+                    </div>
+                    <div class="flex justify-between items-center group cursor-help relative hover:bg-white/5 p-1 rounded transition-colors">
+                        <span class="text-gray-400 group-hover:text-gray-200"><i class="fas fa-eye w-5 text-center opacity-70"></i> 市場洞察</span>
+                        <span class="text-white font-bold text-lg font-mono"><span id="stat-insight">0</span> <span id="ins-boost" class="text-xs text-green-400 hidden">(+0)</span></span>
+                        <div class="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-black/90 text-xs p-2 rounded border border-gray-700 z-50 whitespace-nowrap shadow-xl">影響能否看到**市場估值**，並提高情報品質。</div>
+                    </div>
+                    <div class="flex justify-between items-center group cursor-help relative hover:bg-white/5 p-1 rounded transition-colors">
+                        <span class="text-gray-400 group-hover:text-gray-200"><i class="fas fa-dice-d20 w-5 text-center opacity-70"></i> 命運運氣</span>
+                        <span class="text-white font-bold text-lg font-mono"><span id="stat-luck">0</span> <span id="luck-boost" class="text-xs text-green-400 hidden">(+0)</span></span>
+                        <div class="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-black/90 text-xs p-2 rounded border border-gray-700 z-50 whitespace-nowrap shadow-xl">影響賭博勝率與談判運氣</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory & Intel -->
+            <div class="bg-black/30 rounded-lg p-2 border border-white/5 shadow-inner flex-1 flex flex-col min-h-[200px]">
+                <div class="flex mb-2 border-b border-white/5 pb-1">
+                    <button id="btn-tab-inv" onclick="switchTab('inv')" class="flex-1 text-xs py-2 font-bold tab-btn tab-active tracking-wide">
+                        <i class="fas fa-box-open mr-1"></i> 背包 (<span id="count-inv">0</span>)
+                    </button>
+                    <button id="btn-tab-intel" onclick="switchTab('intel')" class="flex-1 text-xs py-2 font-bold tab-btn tab-inactive tracking-wide">
+                        <i class="fas fa-scroll mr-1"></i> 情報 (<span id="count-intel">0</span>)
+                    </button>
+                </div>
+
+                <div id="tab-content-inv" class="flex-1 overflow-y-auto space-y-2 text-xs pr-1">
+                    <div class="text-gray-600 text-center mt-10 italic text-xs tracking-wider">Empty Inventory</div>
+                </div>
+
+                <div id="tab-content-intel" class="hidden flex-1 overflow-y-auto space-y-2 text-xs pr-1">
+                    <div class="text-gray-600 text-center mt-10 italic text-xs tracking-wider">No Intel Yet</div>
+                </div>
+            </div>
+            
+            <!-- Factions -->
+            <div class="bg-black/30 rounded-lg p-4 border border-white/5 shadow-inner">
+                <h2 class="text-xs font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 pb-2 border-b border-white/5">
+                    Reputation
+                </h2>
+                <div class="space-y-3 text-xs">
+                     <div class="flex justify-between items-center group cursor-help relative hover:bg-white/5 p-1 rounded transition-colors">
+                        <span class="text-yellow-200/70 group-hover:text-yellow-200"><i class="fas fa-coins w-4 text-center"></i> 商會</span>
+                        <div class="w-20 bg-gray-800 rounded-full h-1.5"><div id="rep-merchant-bar" class="h-full bg-yellow-500 rounded-full transition-all duration-500" style="width: 50%"></div></div>
+                        <span id="rep-merchant-val" class="w-5 text-right font-mono">0</span>
+                        <div class="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-black/90 text-xs p-2 rounded border border-gray-700 z-50 shadow-xl">影響商會價格與存款優惠</div>
+                    </div>
+                    <div class="flex justify-between items-center group cursor-help relative hover:bg-white/5 p-1 rounded transition-colors">
+                        <span class="text-blue-200/70 group-hover:text-blue-200"><i class="fas fa-cross w-4 text-center"></i> 教會</span>
+                        <div class="w-20 bg-gray-800 rounded-full h-1.5"><div id="rep-church-bar" class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width: 50%"></div></div>
+                        <span id="rep-church-val" class="w-5 text-right font-mono">0</span>
+                        <div class="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-black/90 text-xs p-2 rounded border border-gray-700 z-50 shadow-xl">影響聖光教堂價格與劇情</div>
+                    </div>
+                    <div class="flex justify-between items-center group cursor-help relative hover:bg-white/5 p-1 rounded transition-colors">
+                        <span class="text-red-300/70 group-hover:text-red-300"><i class="fas fa-skull w-4 text-center"></i> 魔界</span>
+                        <div class="w-20 bg-gray-800 rounded-full h-1.5"><div id="rep-demon-bar" class="h-full bg-red-600 rounded-full transition-all duration-500" style="width: 50%"></div></div>
+                        <span id="rep-demon-val" class="w-5 text-right font-mono">0</span>
+                        <div class="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-black/90 text-xs p-2 rounded border border-gray-700 z-50 shadow-xl">影響黑市價格與賭場</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col relative bg-transparent">
+            <!-- Game Log -->
+            <div id="game-log" class="game-log flex-1 p-8 space-y-6 shadow-inner">
+                <div class="welcome-msg">歡迎來到《奇珍行商》</div>
+                <div class="text-gray-500 text-center italic text-sm tracking-widest opacity-70">請選擇你的出身...</div>
+            </div>
+
+            <!-- Input / Action Area -->
+            <div id="action-area" class="h-auto min-h-[30%] glass-panel border-t border-t-white/10 p-6 flex flex-col gap-4 z-20 transition-all duration-300">
+                <div id="controls" class="flex flex-wrap gap-3 justify-center h-full items-center content-center overflow-auto p-2">
+                    <button class="btn-action bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 text-white font-bold py-4 px-12 rounded-lg shadow-xl text-xl tracking-[0.2em] transform hover:-translate-y-1 transition-all duration-300 border border-blue-400/30" onclick="showApiKeyModal()">
+                        <i class="fas fa-play mr-2"></i>開始旅程
+                    </button>
+                </div>
+                <!-- Hidden Inputs -->
+                <div id="slider-container" class="hidden w-full max-w-lg mx-auto bg-black/40 p-4 rounded-lg border border-gray-600 backdrop-blur-sm shadow-2xl">
+                    <div class="flex justify-between text-base text-gray-300 mb-4"><span id="slider-label" class="font-bold">金額</span><span id="slider-val-display" class="text-yellow-400 font-bold font-mono text-xl">0</span></div>
+                    <input type="range" id="amount-slider" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" min="1" max="100" value="1">
+                    <div class="flex justify-between mt-6">
+                        <button id="btn-slider-cancel" class="text-sm bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded text-gray-300 transition-colors">取消</button>
+                        <button id="btn-slider-confirm" class="text-sm bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 px-8 py-2 rounded text-white font-bold shadow-lg transition-transform transform hover:-translate-y-0.5">確認</button>
+                    </div>
+                </div>
+                <div id="input-container" class="hidden w-full max-w-3xl mx-auto">
+                    <div id="preset-options" class="flex gap-2 justify-center mb-1 overflow-x-auto pb-2 scrollbar-thin"></div>
+                    <div class="flex gap-2">
+                        <input type="text" id="player-input" class="flex-1 bg-black/40 border border-gray-600 text-white px-5 py-3 rounded-lg focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 placeholder-gray-500 transition-all font-serif" placeholder="輸入你的回應...">
+                        <button id="submit-input" class="bg-gradient-to-b from-yellow-600 to-yellow-700 hover:from-yellow-500 hover:to-yellow-600 text-white px-8 py-3 rounded-lg font-bold shadow-md transition-all border border-yellow-500/30">發送</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Location Overlay -->
+            <div id="location-name" class="absolute top-6 right-6 bg-black/60 backdrop-blur-md px-6 py-3 rounded-r-lg text-white font-serif text-2xl border-l-4 border-yellow-500 shadow-xl tracking-widest transform transition-all opacity-0 duration-500" style="right: -10px;">
+                命運的十字路口
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="api-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden fade-in">
+        <div class="bg-gray-800 border border-gray-600 rounded-xl max-w-md w-full p-8 shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500"></div>
+            <h2 class="text-2xl font-bold text-white mb-2 text-center font-serif tracking-wide">系統設定</h2>
+            <p class="text-gray-400 text-sm mb-6 text-center leading-relaxed">請輸入 Gemini API Key (選填) 以啟用 AI。<br>直接進入將使用模擬資料。</p>
+            <input type="password" id="modal-api-input" class="w-full bg-black/30 border border-gray-600 text-white px-4 py-3 rounded-lg mb-6 focus:outline-none focus:border-blue-500 transition-colors font-mono text-sm" placeholder="API Key...">
+            <button onclick="confirmApiKey()" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold py-3 rounded-lg shadow-lg transform transition hover:-translate-y-1">進入異世界</button>
+            <div class="text-center mt-4"><a href="#" onclick="initGameWithMock()" class="text-xs text-gray-500 hover:text-gray-300 underline transition-colors">跳過 (使用模擬資料)</a></div>
+        </div>
+    </div>
+
+    <div id="help-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+        <div class="bg-gray-900 border border-gray-600 rounded-xl max-w-3xl w-full p-0 shadow-2xl relative flex flex-col max-h-[85vh]">
+            <div class="p-6 border-b border-gray-700 flex justify-between items-center bg-black/20 rounded-t-xl">
+                <h2 class="text-2xl font-bold text-yellow-500 font-serif tracking-wide"><i class="fas fa-book-open mr-2"></i> 冒險指南</h2>
+                <button onclick="document.getElementById('help-modal').classList.add('hidden')" class="text-gray-400 hover:text-white transition-colors"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-8 overflow-y-auto space-y-8 text-sm text-gray-300 leading-relaxed font-serif">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="font-bold text-white text-lg mb-3 pb-1 border-b border-gray-700"><i class="fas fa-trophy mr-2 text-yellow-500"></i> 勝利條件</h3>
+                        <p>您的目標是在 <span class="text-yellow-400 font-bold">5 天</span> 內賺取 <span class="text-green-400 font-bold">10,000 G</span> 並存活下來。</p>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-white text-lg mb-3 pb-1 border-b border-gray-700"><i class="fas fa-bolt mr-2 text-blue-500"></i> 體力與生存</h3>
+                        <p>移動(-1)、交易(-2)、打探(-1)。每晚需支付 <span class="text-red-400 font-bold">生活費</span>。體力耗盡無法行動。</p>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-white text-lg mb-3 pb-1 border-b border-gray-700"><i class="fas fa-balance-scale mr-2 text-purple-400"></i> 交易與聲望</h3>
+                    <p class="mb-2">聲望會影響<span class="text-yellow-400">劇情走向</span>、買賣價格與 NPC 態度。</p>
+                    <ul class="space-y-2 ml-2">
+                        <li class="flex items-center gap-2"><span class="bg-green-900/30 text-green-400 px-2 py-0.5 rounded text-xs border border-green-500/30">交易成功</span> 聲望 +1</li>
+                        <li class="flex items-center gap-2"><span class="bg-red-900/30 text-red-400 px-2 py-0.5 rounded text-xs border border-red-500/30">交易取消/失敗</span> 聲望 -1</li>
+                        <li class="flex items-center gap-2"><span class="bg-blue-900/30 text-blue-400 px-2 py-0.5 rounded text-xs border border-blue-500/30">打探情報被抓</span> 聲望 -2</li>
+                    </ul>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="font-bold text-white text-lg mb-3 pb-1 border-b border-gray-700"><i class="fas fa-coins mr-2 text-yellow-200"></i> 金融設施</h3>
+                        <ul class="space-y-2">
+                            <li><strong class="text-yellow-200">銀行</strong>：存入資金可生息 (每日浮動 2%~8%)，存入時需支付手續費 10 G。</li>
+                            <li><strong class="text-purple-400">賭場</strong>：地下黑市提供翻倍的機會。但若簽訂了惡魔契約，風險極高。</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-white text-lg mb-3 pb-1 border-b border-gray-700"><i class="fas fa-box mr-2 text-blue-300"></i> 物品功能</h3>
+                        <ul class="space-y-1 text-gray-400">
+                            <li><span class="text-blue-300">🗣️ 交涉</span>：提升談判技巧。</li>
+                            <li><span class="text-purple-300">👁️ 洞察</span>：提升對物品價值的判斷。</li>
+                            <li><span class="text-green-300">🍀 幸運</span>：提升賭場勝率與談判運氣。</li>
+                            <li><span class="text-yellow-300">📜 情報</span>：獲得市場資訊。</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="bg-gradient-to-r from-red-900/20 to-transparent p-5 rounded-lg border-l-4 border-red-600">
+                    <h3 class="font-bold text-red-400 text-lg mb-2"><i class="fas fa-file-signature mr-2"></i> 惡魔契約</h3>
+                    <p class="italic text-gray-400">「當你凝視深淵時，深淵也在凝視你...」</p>
+                    <p class="mt-2">缺錢時惡魔會提供救命資金。代價是生活費翻倍、談判變難，且再次破產將直接獻祭靈魂。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Event Modal (Devil Contract) -->
+    <div id="event-modal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 fade-in">
+        <div class="bg-gray-800 border-2 border-red-800/80 rounded-xl max-w-2xl w-full p-8 shadow-[0_0_100px_rgba(220,38,38,0.3)] relative overflow-hidden transform scale-100 transition-transform">
+            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-30 pointer-events-none mix-blend-overlay"></div>
+            <div class="absolute -top-10 -right-10 w-40 h-40 bg-red-600/20 blur-3xl rounded-full pointer-events-none"></div>
+            <h2 id="modal-title" class="text-4xl font-bold text-red-500 mb-6 font-serif text-center tracking-widest" style="text-shadow: 0 0 15px rgba(220, 38, 38, 0.8);"></h2>
+            <div id="modal-content" class="text-gray-300 text-lg leading-relaxed mb-10 text-center space-y-4 font-serif relative z-10"></div>
+            <!-- ACTIONS are customized in JS, including the blood contract button -->
+            <div id="modal-actions" class="flex justify-center gap-6 relative z-10"></div>
+        </div>
+    </div>
+
+    <script>
+        let API_KEY = "";
+        
+        let gameState = {
+            day: 1,
+            maxDays: 5,
+            gold: 0,
+            bank: 0,
+            goal: 10000, 
+            livingCost: 100,
+            stamina: 10, 
+            maxStamina: 10, 
+            attributes: { negotiation: 0, insight: 0, luck: 0 },
+            luckBoost: 0, 
+            reputation: { merchant: 0, church: 0, demon: 0 },
+            inventory: [],
+            location: "start",
+            contractSigned: false,
+            isPurified: false, // New Flag for hidden sin
+            gameOver: false,
+            npcCurrent: null, 
+            pendingPurchase: null,
+            pendingBetAmount: null, 
+            forcedGamble: false,
+            marketModifiers: {},
+            quizHistory: [],
+            bgStory: "", 
+            role: "未定",
+            lastIntelRumor: "",
+            interestRate: 0.05,
+            isProcessing: false // 新增全局處理旗標
+        };
+
+        const FACTION_NAMES = { 'merchant': '商會', 'church': '教會', 'demon': '魔界' };
+        const MAX_LOAN_CAP = 5000; 
+
+        const LOCATIONS = {
+            "merchant_guild": { name: "黃金商會", color: "text-yellow-400", desc: "大陸最大的貿易中心，金幣流動的聲音日夜不息。", faction: "merchant" },
+            "church_district": { name: "聖光教堂", color: "text-blue-400", desc: "宏偉的尖塔直指天際，彩繪玻璃折射出七色聖光。信徒們在此虔誠祈禱，空氣中瀰漫著令人心安的薰香氣息。", faction: "church" },
+            "black_market": { name: "地下黑市", color: "text-purple-400", desc: "位於城市下水道的陰暗角落，只有懂規矩的人才能在這裡生存。", faction: "demon" }
+        };
+
+        const LUCKY_ITEMS = ["惡魔的斷指", "幸運兔腳", "受祝福的聖水", "發光的種子"];
+
+        const NPCS = [
+            { name: "貪婪的哥布林", race: "Goblin", role: "Merchant", personality: "Greedy", desc: "一隻眼神閃爍的哥布林，搓著手看著你。", faction: "demon" },
+            { name: "高傲的精靈", race: "Elf", role: "Alchemist", personality: "Arrogant", desc: "雖然在賣東西，但他看你的眼神像是在看垃圾。", faction: "church" },
+            { name: "落魄的騎士", race: "Human", role: "Guard", personality: "Honest", desc: "盔甲生鏽了，為了生計不得不變賣家產。", faction: "merchant" }
+        ];
+
+        const ITEM_TEMPLATES = [
+            { name: "禮儀手冊", type: 'negotiation', boost: 1, basePrice: 200, trueValue: 300, desc: "一本教你如何優雅罵人的書。" },
+            { name: "放大鏡", type: 'insight', boost: 1, basePrice: 300, trueValue: 400, desc: "能看到微小的瑕疵。" },
+            { name: "幸運金幣", type: 'luck', boost: 1, basePrice: 500, trueValue: 600, desc: "據說是被幸運女神親吻過的金幣。" },
+            { name: "商會密函", type: 'intel', boost: 0, basePrice: 150, trueValue: 200, desc: "裡面記載著某些不為人知的秘密。" },
+            { name: "鑲金舌頭", type: 'negotiation', boost: 1.5, basePrice: 600, trueValue: 800, desc: "古代辯論家的遺物。" },
+            { name: "真視之眼", type: 'insight', boost: 1.5, basePrice: 700, trueValue: 900, desc: "能看穿一切謊言的水晶。" },
+            { name: "兔腳", type: 'luck', boost: 0.5, basePrice: 150, trueValue: 200, desc: "普通的幸運護符。" }
+        ];
+
+        const NEGOTIATION_PRESETS = [
+            "這東西上面有明顯的刮痕，便宜點吧？",
+            "隔壁攤位賣得比你便宜多了。",
+            "我是誠心想買，交個朋友以後常來。",
+            "現在行情不好，這東西很難脫手吧？"
+        ];
+
+        const TYPE_ICONS = { 
+            'negotiation': '<i class="fas fa-handshake"></i>', 
+            'insight': '<i class="fas fa-eye"></i>', 
+            'luck': '<i class="fas fa-dice"></i>', 
+            'intel': '<i class="fas fa-scroll"></i>' 
+        };
+        const TYPE_TRANSLATIONS = { 'negotiation': '交涉', 'insight': '洞察', 'luck': '幸運', 'intel': '情報' };
+        
+        // --- 輔助函數: 防呆控制 ---
+        function startProcessing() {
+            gameState.isProcessing = true;
+            ui.controls.style.pointerEvents = 'none';
+            ui.controls.style.opacity = '0.6';
+        }
+
+        function stopProcessing() {
+            gameState.isProcessing = false;
+            ui.controls.style.pointerEvents = 'auto';
+            ui.controls.style.opacity = '1';
+        }
+
+        // --- API & AI Helper ---
+        async function callGemini(prompt, jsonMode = false) {
+            if (!API_KEY) return null; 
+            // 由於之前的錯誤，我們將超時時間設置得更長一些（15秒）
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
+            const payload = { contents: [{ parts: [{ text: prompt }] }] };
+            if (jsonMode) payload.generationConfig = { responseMimeType: "application/json" };
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); 
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                if (!response.ok) throw new Error("API Call Failed");
+                const data = await response.json();
+                return data.candidates?.[0]?.content?.parts?.[0]?.text;
+            } catch (error) {
+                clearTimeout(timeoutId);
+                console.error("Gemini API Error:", error);
+                API_KEY = "";
+                ui.apiStatus.innerHTML = `<div class="w-2 h-2 rounded-full bg-red-500"></div> 連線中斷 (轉模擬)`;
+                document.getElementById('btn-retry-api').classList.remove('hidden');
+                return null;
+            }
+        }
+
+        // --- UI Functions ---
+        const ui = {
+            log: document.getElementById('game-log'),
+            gold: document.getElementById('gold-display'),
+            bank: document.getElementById('bank-display'),
+            day: document.getElementById('day-display'),
+            stamina: document.getElementById('stamina-bar'),
+            staminaText: document.getElementById('stamina-text'),
+            role: document.getElementById('char-role'),
+            controls: document.getElementById('controls'),
+            inputContainer: document.getElementById('input-container'),
+            sliderContainer: document.getElementById('slider-container'),
+            presetOptions: document.getElementById('preset-options'),
+            locName: document.getElementById('location-name'),
+            invList: document.getElementById('tab-content-inv'),
+            intelList: document.getElementById('tab-content-intel'),
+            apiStatus: document.getElementById('api-status-container'),
+            statNeg: document.getElementById('stat-negotiation'),
+            statIns: document.getElementById('stat-insight'),
+            statLuck: document.getElementById('stat-luck'),
+            boostNeg: document.getElementById('neg-boost'),
+            boostIns: document.getElementById('ins-boost'),
+            boostLuck: document.getElementById('luck-boost'),
+            reps: { merV: document.getElementById('rep-merchant-val'), chuV: document.getElementById('rep-church-val'), demV: document.getElementById('rep-demon-val') }
+        };
+
+        function showApiKeyModal() { document.getElementById('api-modal').classList.remove('hidden'); }
+        function showHelpModal() { document.getElementById('help-modal').classList.remove('hidden'); }
+        function initGameWithMock() {
+            API_KEY = "";
+            document.getElementById('api-status-dot').className = "w-2 h-2 rounded-full bg-gray-500";
+            document.getElementById('api-status-text').innerText = "模擬模式";
+            document.getElementById('api-modal').classList.add('hidden');
+            initGame();
+        }
+
+        async function confirmApiKey() {
+            const input = document.getElementById('modal-api-input').value.trim();
+            let keyToUse = input || API_KEY;
+            
+            if (keyToUse) {
+                API_KEY = keyToUse;
+                document.getElementById('api-status-dot').className = "w-2 h-2 rounded-full bg-yellow-500 animate-pulse";
+                document.getElementById('api-status-text').innerText = "連線測試中...";
+                document.getElementById('btn-retry-api').classList.add('hidden');
+                
+                const test = await callGemini("test");
+                if (test) {
+                    document.getElementById('api-status-dot').className = "w-2 h-2 rounded-full bg-green-500";
+                    document.getElementById('api-status-text').innerText = "AI 連線中";
+                } else {
+                    API_KEY = "";
+                    document.getElementById('api-status-dot').className = "w-2 h-2 rounded-full bg-red-500";
+                    document.getElementById('api-status-text').innerText = "連線失敗";
+                    document.getElementById('btn-retry-api').classList.remove('hidden');
+                }
+            } else {
+                initGameWithMock();
+                return;
+            }
+            document.getElementById('api-modal').classList.add('hidden');
+            if(gameState.role === "未定") initGame(); 
+        }
+
+        function switchTab(tab) {
+            const invBtn = document.getElementById('btn-tab-inv');
+            const intelBtn = document.getElementById('btn-tab-intel');
+            const invContent = document.getElementById('tab-content-inv');
+            const intelContent = document.getElementById('tab-content-intel');
+            if (tab === 'inv') {
+                invContent.classList.remove('hidden'); intelContent.classList.add('hidden');
+                invBtn.classList.add('tab-active'); invBtn.classList.remove('tab-inactive');
+                intelBtn.classList.add('tab-inactive'); intelBtn.classList.remove('tab-active');
+            } else {
+                invContent.classList.add('hidden'); intelContent.classList.remove('hidden');
+                intelBtn.classList.add('tab-active'); intelBtn.classList.remove('tab-inactive');
+                invBtn.classList.add('tab-inactive'); invBtn.classList.remove('tab-active');
+            }
+        }
+
+        function addLog(text, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = "fade-in mb-3 leading-relaxed";
+            if (type === 'system') div.className += " text-gray-500 text-sm border-l-2 border-gray-600 pl-3 border-l-gray-700";
+            else if (type === 'important') div.className += " text-yellow-300 font-bold border-l-2 border-yellow-500 pl-3 bg-yellow-500/10 py-1";
+            else if (type === 'danger') div.className += " devil-text font-bold border-l-2 border-red-500 pl-3 bg-red-900/20 py-1";
+            else if (type === 'npc') div.className += " text-cyan-300 border-l-2 border-cyan-500 pl-3";
+            else if (type === 'player') div.className += " text-green-400 text-right italic pr-2";
+            else if (type === 'story') div.className += " text-purple-300 italic border-l-4 border-purple-500 pl-4 py-2 bg-purple-900/20 story-content rounded-r border-t border-b border-r border-purple-500/30";
+            else if (type === 'church-text') div.className += " church-text font-bold border-l-2 border-blue-500 pl-3 bg-blue-900/20 py-1";
+            else div.className += " text-gray-300";
+
+            if (type !== 'story') text = text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-yellow-400">$1</strong>');
+            div.innerHTML = text;
+            ui.log.prepend(div); 
+        }
+
+        function addDevilComment(action) {
+            // Even if purified, the demon still mocks you, maybe more sinisterly
+            if ((!gameState.contractSigned && !gameState.isPurified) || Math.random() > 0.3) return;
+            
+            let list = [];
+            if (gameState.isPurified) {
+                list = ["你以為洗得掉嗎？", "聖光下的影子更深...", "他們也收了我的錢..."];
+            } else {
+                const comments = {
+                    'trade': ["你的貪婪滋味真不錯...", "靈魂的重量似乎減輕了呢...", "這筆交易，我也有一份吧？"],
+                    'move': ["無論逃到哪裡，影子都跟著你...", "你以為你能還清嗎？嘻嘻...", "時間不多了..."],
+                    'gamble': ["再賭大一點，把靈魂也押上！", "輸吧，輸光了就屬於我了...", "幸運女神？她早就拋棄你了。"]
+                };
+                list = comments[action] || comments['move'];
+            }
+            addLog(`惡魔低語: 『${list[Math.floor(Math.random()*list.length)]}』`, "devil-text");
+        }
+
+        function updateUI() {
+            // Apply Contract Theme
+            if (gameState.contractSigned) {
+                document.body.classList.add('contract-mode');
+            } else {
+                document.body.classList.remove('contract-mode');
+            }
+
+            let luckBonus = 0, negBoost = 0, insBoost = 0;
+            gameState.inventory.forEach(item => {
+                if (item.type === 'luck') luckBonus += (item.boost || 0);
+                if (item.type === 'negotiation') negBoost += (item.boost || 0);
+                if (item.type === 'insight') insBoost += (item.boost || 0);
+            });
+            gameState.luckBoost = parseFloat(luckBonus.toFixed(1));
+
+            ui.gold.innerText = Math.floor(gameState.gold).toLocaleString() + " G";
+            ui.bank.innerText = Math.floor(gameState.bank).toLocaleString() + " G";
+            ui.day.innerText = `第 ${gameState.day} / ${gameState.maxDays} 天`;
+            ui.role.innerText = gameState.role || "未定";
+            
+            const staminaPct = (gameState.stamina / gameState.maxStamina) * 100;
+            ui.stamina.style.width = `${staminaPct}%`;
+            // Color shift based on value
+            if (gameState.stamina < 5) ui.stamina.className = `h-full rounded-full transition-all duration-300 bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] progress-bar`;
+            else ui.stamina.className = `h-full rounded-full transition-all duration-300 bg-gradient-to-r from-green-500 to-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)] progress-bar`;
+            ui.staminaText.innerText = `${gameState.stamina}/${gameState.maxStamina}`;
+
+            ui.statNeg.innerText = gameState.attributes.negotiation;
+            if(negBoost > 0) { ui.boostNeg.innerText = `(+${negBoost.toFixed(1)})`; ui.boostNeg.classList.remove('hidden'); } else ui.boostNeg.classList.add('hidden');
+            ui.statIns.innerText = gameState.attributes.insight;
+            if(insBoost > 0) { ui.boostIns.innerText = `(+${insBoost.toFixed(1)})`; ui.boostIns.classList.remove('hidden'); } else ui.boostIns.classList.add('hidden');
+            ui.statLuck.innerText = gameState.attributes.luck;
+            if(luckBonus > 0) { ui.boostLuck.innerText = `(+${luckBonus.toFixed(1)})`; ui.boostLuck.classList.remove('hidden'); } else ui.boostLuck.classList.add('hidden');
+
+            // Normalized widths for rep bars (0-100%) assuming max rep ~20 for visuals
+            const repM = Math.min(100, Math.max(0, (gameState.reputation.merchant + 10) * 3));
+            const repC = Math.min(100, Math.max(0, (gameState.reputation.church + 10) * 3));
+            const repD = Math.min(100, Math.max(0, (gameState.reputation.demon + 10) * 3));
+            
+            document.getElementById('rep-merchant-bar').style.width = `${repM}%`;
+            document.getElementById('rep-church-bar').style.width = `${repC}%`;
+            document.getElementById('rep-demon-bar').style.width = `${repD}%`;
+
+            ui.reps.merV.innerText = gameState.reputation.merchant;
+            ui.reps.chuV.innerText = gameState.reputation.church;
+            ui.reps.demV.innerText = gameState.reputation.demon;
+
+            if (gameState.contractSigned) document.getElementById('contract-badge').classList.remove('hidden');
+            else document.getElementById('contract-badge').classList.add('hidden');
+
+            const normalItems = gameState.inventory.filter(i => i.type !== 'intel');
+            const intelItems = gameState.inventory.filter(i => i.type === 'intel');
+            document.getElementById('count-inv').innerText = normalItems.length;
+            document.getElementById('count-intel').innerText = intelItems.length;
+
+            ui.invList.innerHTML = '';
+            if (normalItems.length === 0) ui.invList.innerHTML = '<div class="text-gray-600 text-center mt-10 italic text-xs tracking-wider">Empty Inventory</div>';
+            else {
+                normalItems.forEach(item => {
+                    const el = document.createElement('div');
+                    el.className = "item-card";
+                    let typeIcon = TYPE_ICONS[item.type];
+                    let boostLabel = "";
+                    if(item.type === 'negotiation') { boostLabel = `談判 +${item.boost}`; }
+                    if(item.type === 'insight') { boostLabel = `洞察 +${item.boost}`; }
+                    if(item.type === 'luck') { boostLabel = `運氣 +${item.boost}`; }
+                    
+                    el.title = `${item.desc}\n效果: ${boostLabel}`;
+                    el.innerHTML = `<div class="flex items-center gap-2"><span class="text-lg">${typeIcon}</span> <span class="text-gray-200 font-bold">${item.name}</span></div><span class="text-yellow-500 text-xs font-mono bg-black/40 px-2 py-1 rounded">估值: ${item.trueValue} G</span>`;
+                    ui.invList.appendChild(el);
+                });
+            }
+
+            ui.intelList.innerHTML = '';
+            if (intelItems.length === 0) ui.intelList.innerHTML = '<div class="text-gray-600 text-center mt-10 italic text-xs tracking-wider">No Intel Yet</div>';
+            else {
+                intelItems.forEach(item => {
+                    const el = document.createElement('div');
+                    el.className = "intel-card";
+                    el.title = item.desc; 
+                    // 修正點 2: 只顯示 summary，將 desc 留給 hover (title)
+                    el.innerHTML = `<div class="font-bold text-blue-300 mb-1 w-full truncate border-b border-blue-500/30 pb-1">${item.summary}</div>`; 
+                    ui.intelList.appendChild(el);
+                });
+            }
+            
+            // Location Name Animation
+            const locEl = ui.locName;
+            locEl.classList.remove('translate-x-full', 'opacity-0');
+            if (LOCATIONS[gameState.location]) locEl.innerText = LOCATIONS[gameState.location].name;
+        }
+
+        function clearControls() {
+            ui.controls.innerHTML = '';
+            ui.inputContainer.classList.add('hidden');
+            ui.sliderContainer.classList.add('hidden');
+            ui.presetOptions.innerHTML = '';
+        }
+
+        function createBtn(text, onClick, style = 'primary') {
+            const btn = document.createElement('button');
+            btn.innerHTML = text;
+            btn.onclick = (e) => {
+                if (gameState.isProcessing) {
+                    addLog("請等待當前操作完成...", "system");
+                    return;
+                }
+                onClick(e);
+            };
+            let classes = "btn-action font-bold py-3 px-6 rounded-lg mb-2 mx-1 shadow-md text-sm tracking-wide ";
+            if (style === 'primary') classes += "btn-primary text-white";
+            else if (style === 'danger') classes += "btn-danger text-white";
+            else if (style === 'gold') classes += "btn-gold text-white";
+            else classes += "bg-gradient-to-b from-gray-600 to-gray-700 hover:from-gray-500 hover:to-gray-600 text-gray-100 border-gray-500/50";
+            btn.className = classes;
+            ui.controls.appendChild(btn);
+            return btn; 
+        }
+
+        function showSliderInput(label, max, onConfirm, onCancel) {
+            clearControls();
+            ui.sliderContainer.classList.remove('hidden');
+            const slider = document.getElementById('amount-slider');
+            const display = document.getElementById('slider-val-display');
+            const btnConfirm = document.getElementById('btn-slider-confirm');
+            const btnCancel = document.getElementById('btn-slider-cancel');
+            const labelEl = document.getElementById('slider-label');
+
+            labelEl.innerText = label;
+            slider.max = max;
+            slider.value = Math.floor(max / 2); 
+            if (max <= 0) slider.value = 0;
+            display.innerText = slider.value;
+
+            slider.oninput = () => { display.innerText = slider.value; };
+            btnConfirm.onclick = () => { const val = parseInt(slider.value); if (val > 0) onConfirm(val); };
+            btnCancel.onclick = onCancel;
+        }
+
+        function initGame() {
+            gameState.day = 1;
+            gameState.gold = 0;
+            gameState.bank = 0;
+            gameState.stamina = gameState.maxStamina;
+            gameState.contractSigned = false;
+            gameState.isPurified = false;
+            gameState.gameOver = false;
+            gameState.inventory = [];
+            gameState.location = "start";
+            gameState.luckBoost = 0;
+            gameState.reputation = { merchant: 0, church: 0, demon: 0 };
+            gameState.attributes = { negotiation: 0, insight: 0, luck: 0 };
+            gameState.marketModifiers = {};
+            gameState.quizHistory = [];
+            gameState.role = "未定";
+            gameState.bgStory = "";
+            gameState.lastIntelRumor = "";
+            gameState.interestRate = 0.05;
+            gameState.isProcessing = false;
+            stopProcessing();
+            
+            document.getElementById('contract-badge').classList.add('hidden');
+            ui.log.innerHTML = '';
+            document.getElementById('event-modal').classList.add('hidden');
+            
+            ui.log.innerHTML = `<div class="welcome-msg">歡迎來到《奇珍行商》</div><div class="text-gray-400 text-center italic text-sm">請選擇你的出身...</div>`;
+            
+            ui.controls = document.getElementById('controls');
+            ui.locName = document.getElementById('location-name');
+            ui.locName.innerText = "命運的十字路口";
+
+            updateUI();
+            clearControls();
+            
+            createBtn("聽天由命", () => startCharCreation('random'), 'gray');
+            createBtn("靈魂拷問", () => startCharCreation('quiz'), 'primary');
+            const btnCustom = createBtn("自我定義", () => startCharCreation('custom'), 'gold');
+            if (!API_KEY) {
+                btnCustom.disabled = true;
+                btnCustom.className = "btn-action bg-gray-700 text-gray-500 border-gray-600 cursor-not-allowed py-3 px-6 rounded-lg mb-2 mx-1 shadow-inner";
+                btnCustom.title = "需要 API Key 才能使用";
+                btnCustom.innerText += " (限AI)";
+            }
+        }
+
+        function resetGame() { 
+            document.getElementById('event-modal').classList.add('hidden');
+            initGame(); 
+        }
+
+        function startCharCreation(mode) {
+            clearControls();
+            if (mode === 'custom') {
+                addLog("請輸入你想要扮演的角色設定...", "system");
+                ui.inputContainer.classList.remove('hidden');
+                const input = document.getElementById('player-input');
+                input.value = ''; // 修正 1: 清空輸入框
+                const submit = document.getElementById('submit-input');
+                input.placeholder = "輸入角色設定...";
+                submit.onclick = () => {
+                    const customRole = input.value.trim();
+                    if (!customRole) return;
+                    finalizeCharCreation('custom', customRole);
+                };
+                // 加入返回按鈕
+                createBtn("返回選擇", initGame, 'gray');
+                return;
+            } else if (mode === 'quiz') {
+                startSoulQuestioning();
+                return;
+            }
+            finalizeCharCreation(mode, null);
+        }
+
+        async function startSoulQuestioning() {
+            clearControls();
+            addLog("正在連接靈魂迴路...", "system");
+            startProcessing(); // 啟用防呆
+            gameState.quizHistory = []; 
+            let questions = [];
+            if (API_KEY) {
+                const prompt = `請生成3個角色扮演選擇題，用於決定奇幻商人的初始能力。題目主題分別為：1.道德抉擇 2.商業風險 3.生存反應。請回傳純 JSON 陣列 (Array of Objects)，格式為：[{"q":"題目內容", "a":"選項A描述", "b":"選項B描述"}, ... ]。不要有 Markdown 格式。`;
+                try {
+                    const jsonStr = await callGemini(prompt);
+                    const cleanStr = jsonStr.replace(/```json/g, '').replace(/```/g, '').trim();
+                    questions = JSON.parse(cleanStr);
+                } catch(e) { console.error("Quiz gen failed", e); }
+            }
+            stopProcessing(); // 解除防呆
+
+            if (!questions || questions.length < 3) {
+                questions = [
+                    { q: "飢餓的小孩偷了你僅剩的麵包。", a: "奪回麵包", b: "放他走" },
+                    { q: "傳說中的海怪海域盛產稀有香料。", a: "ALL IN 投資 (高風險)", b: "保守觀望 (低風險)" },
+                    { q: "深夜在森林露營時聽到狼嚎。", a: "爬樹躲避", b: "點火威嚇" }
+                ];
+            }
+
+            let qIndex = 0;
+            const answers = []; 
+            const showNextQuestion = () => {
+                if (qIndex >= 3) { finalizeQuizCreation(answers); return; }
+                const q = questions[qIndex];
+                clearControls();
+                addLog(`【問題 ${qIndex+1}】 ${q.q}`, "important");
+                createBtn(`A. ${q.a}`, () => handleAnswer('A', q.a), 'primary');
+                createBtn(`B. ${q.b}`, () => handleAnswer('B', q.b), 'gold');
+                // 加入返回按鈕
+                createBtn("返回選擇", initGame, 'gray');
+            };
+            const handleAnswer = (choice, text) => {
+                answers.push(choice);
+                gameState.quizHistory.push(`Q${qIndex+1}: <span class="text-yellow-400">➤ 選擇: ${text}</span>`);
+                clearControls();
+                addLog(`你選擇: ${text}`, "normal");
+                setTimeout(() => { qIndex++; showNextQuestion(); }, 800);
+            };
+            showNextQuestion();
+        }
+
+        async function finalizeQuizCreation(answers) {
+            await finalizeCharacter('quiz', answers);
+        }
+
+        async function finalizeCharCreation(mode, customInput) {
+            await finalizeCharacter(mode, customInput);
+        }
+
+        async function finalizeCharacter(mode, input) {
+            clearControls();
+            ui.inputContainer.classList.add('hidden');
+            addLog("命運已定。", "important");
+            
+            // 修正 2: 設定更高的起始資金
+            let baseGold = 2000, neg=2, ins=2, luck=2; 
+            let roleName = "命運之子";
+            let story = "";
+            let useAiFallback = false; // Add AI Fallback Flag
+
+            // Determine base stats and role name based on input mode (Simulated defaults)
+            if (mode === 'quiz') {
+                const countA = input.filter(x => x === 'A').length;
+                if (countA === 3) { roleName = "無情的投機者"; baseGold = 2500; neg = 5; luck = 3; }
+                else if (countA === 0) { roleName = "聖徒商人"; baseGold = 1500; neg = 2; luck = 2; ins = 4; }
+                else { roleName = "精明的冒險家"; baseGold = 2000; neg = 3; ins = 3; luck = 2; }
+            } else if (mode === 'random') {
+                const roles = ["流浪賭徒", "失憶的傭兵", "被逐出的學徒", "尋寶獵人", "落魄詩人"];
+                roleName = roles[Math.floor(Math.random() * roles.length)];
+                // 修正 2: 隨機起始資金範圍 1500 G - 2499 G
+                baseGold = Math.floor(Math.random() * 1000) + 1500; 
+                neg = Math.floor(Math.random() * 5); ins = Math.floor(Math.random() * 5); luck = Math.floor(Math.random() * 5);
+            } else { 
+                roleName = input;
+                baseGold = 2000; neg=3; ins=3; luck=3; // 修正 2: 預設起始資金
+            }
+            story = `你是${roleName}，身懷${baseGold}G，準備在異界大展身手。`; // Default story/stats
+
+            if (API_KEY) {
+                addLog("AI 正在根據你的選擇生成判詞...", "system");
+                startProcessing(); // 啟用防呆
+                const context = mode==='quiz' ? `選擇:${input.join(',')}` : `設定:${roleName}`;
+                const prompt = `玩家創角資料: ${context}。目標: 5天內賺10,000G。請生成背景故事。
+                回傳JSON格式: {"story": "故事內容(約200字)", "title": "職業稱號", "stats": {"negotiation": 0-5, "insight": 0-5, "luck": 0-5, "gold": 1500-2500}}`;
+                
+                try {
+                    const jsonStr = await callGemini(prompt, true);
+                    if (jsonStr) {
+                        try {
+                            const res = JSON.parse(jsonStr);
+                            story = res.story; 
+                            roleName = res.title;
+                            if (res.stats) {
+                                // AI 生成的 gold 也應在合理範圍，此處使用 AI 的數值
+                                baseGold = res.stats.gold; 
+                                neg = res.stats.negotiation; 
+                                ins = res.stats.insight; 
+                                luck = res.stats.luck; 
+                            }
+                        } catch (e) {
+                            console.error("JSON Parsing Error, using fallback:", e);
+                            useAiFallback = true;
+                        }
+                    } else {
+                        // callGemini returned null (API error/timeout)
+                        useAiFallback = true;
+                    }
+                } catch(e) { 
+                    console.error("API Call Error during Char Finalize:", e);
+                    useAiFallback = true;
+                }
+                stopProcessing(); // 解除防呆
+            }
+            
+            if (useAiFallback) {
+                 addLog("AI 連線失敗，使用模擬背景故事。", "system");
+                 // The default roleName and story defined before the if(API_KEY) block are used here.
+            }
+
+
+            gameState.gold = baseGold;
+            gameState.attributes = { negotiation: neg, insight: ins, luck: luck };
+            gameState.role = roleName;
+            gameState.bgStory = story;
+            
+            updateUI();
+            addLog(`創角完成！`, "important");
+            const div = document.createElement('div');
+            div.className = "fade-in mb-2 leading-relaxed text-purple-300 italic border-l-4 border-purple-500 pl-4 py-2 bg-purple-900/20 story-content";
+            div.innerHTML = marked.parse(story);
+            ui.log.prepend(div);
+            addLog(`初始資金: ${gameState.gold} G`, "system");
+
+            startGameplay();
+        }
+
+        async function startGameplay() {
+            await gatherIntel(false); 
+            addLog("這是一個充滿機會與危險的世界。你要去哪裡？", "normal");
+            enterMainMap(); 
+        }
+
+        async function generateDevilGreeting() {
+            if (!API_KEY) {
+                addLog("惡魔低語: 『你以為這樣就能逃脫嗎？』", "devil-text");
+                return;
+            }
+            addLog("惡魔正在傳送訊息...", "system");
+            startProcessing(); // 啟用防呆
+            const prompt = `你是一個與奇幻商人簽訂契約的惡魔。請用輕蔑、嘲諷或充滿威脅的語氣，為玩家生成一句簡短的每日問候(30字內)。玩家的職業是 ${gameState.role}，目前資產總計 ${(gameState.gold + gameState.bank).toLocaleString()} G。`;
+            try {
+                const greeting = await callGemini(prompt);
+                if (greeting) {
+                    addLog(`惡魔低語: 『${greeting}』`, "danger");
+                }
+            } catch(e) {
+                addLog("惡魔低語: 『你以為這樣就能逃脫嗎？』", "devil-text");
+            } finally {
+                stopProcessing(); // 解除防呆
+            }
+        }
+
+        function enterMainMap() {
+            gameState.location = "map";
+            ui.locName.innerText = "世界地圖";
+            clearControls();
+            updateUI();
+            //addLog("這是一個充滿機會與危險的世界。你要去哪裡？", "normal");
+            createBtn("黃金商會", () => visitLocation('merchant_guild'), 'gold');
+            createBtn("聖光教堂", () => visitLocation('church_district'), 'primary');
+            createBtn("地下黑市", () => visitLocation('black_market'), 'danger');
+            
+            const cost = gameState.livingCost;
+            let btnStyle = 'btn-primary';
+            let warningText = '';
+            if (gameState.gold < cost) {
+                btnStyle = 'btn-danger animate-pulse';
+                warningText = ` (⚠️ 資金不足)`;
+            }
+            const endBtn = document.createElement('button');
+            endBtn.innerHTML = `<i class="fas fa-moon mr-2"></i>結束這一天${warningText}`;
+            endBtn.className = `btn-action py-3 px-6 rounded-lg mt-4 border w-full ${btnStyle} text-white font-bold`;
+            endBtn.onclick = endDay;
+            ui.controls.appendChild(document.createElement('br'));
+            ui.controls.appendChild(endBtn);
+        }
+
+        function visitLocation(locKey) {
+            if (!LOCATIONS[locKey]) return; 
+            if (gameState.location !== locKey) {
+                if (gameState.stamina < 1) { addLog("你累得動彈不得，必須休息了。", "danger"); return; }
+                gameState.stamina -= 1;
+                addDevilComment('move');
+            }
+            gameState.location = locKey;
+            const loc = LOCATIONS[locKey];
+            ui.locName.innerText = loc.name;
+            
+            updateUI(); clearControls();
+            addLog(`你來到了【${loc.name}】。`, "important");
+            addLog(loc.desc, "normal");
+
+            createBtn("尋找交易對象 (-2 體力)", findTradeTarget, 'gold');
+            createBtn("打探情報 (-1 體力)", () => gatherIntel(true), 'primary'); 
+            if (locKey === 'merchant_guild') createBtn("銀行業務 (-1 體力)", bankAction, 'primary');
+            if (locKey === 'black_market') createBtn("深淵賭場", () => gambleAction(false), 'danger');
+            
+            // 淨化功能
+            if (locKey === 'church_district' && gameState.contractSigned) {
+                 createBtn("淨化契約 (-3 體力)", purifyContract, 'primary');
+            }
+            
+            createBtn("返回地圖", enterMainMap, 'gray');
+        }
+
+        function purifyContract() {
+            if (gameState.stamina < 3) { addLog("體力不足 (需要 3)。", "danger"); return; }
+            if (gameState.gold < 5000) { addLog("你需要至少 5,000 G。", "danger"); return; }
+            if (gameState.reputation.church < 10) { addLog("教會的信任不足 (需要教會聲望 10)。", "danger"); return; }
+
+            gameState.stamina -= 3;
+            gameState.gold -= 5000;
+            
+            gameState.contractSigned = false;
+            gameState.isPurified = true; // Hidden flag
+            gameState.livingCost = 100;
+            
+            gameState.reputation.church += 10;
+            gameState.reputation.demon -= 30; 
+            
+            // 修正 1: 移除獻金字眼
+            addLog("聖光降臨！你已支付 5,000 G，契約的印記被**淨化**了。教會聲望 +10，魔界聲望 -30。", "church-text");
+            addLog("你的每日生活費恢復到 100 G。但陰影似乎仍在蠕動...", "important");
+            
+            updateUI(); clearControls(); visitLocation('church_district');
+        }
+
+        async function generateDynamicItem(npc) {
+            const types = ['negotiation', 'insight', 'luck', 'intel'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            let item = { name: "未知物品", type: type, boost: parseFloat((Math.random() * 1.5 + 0.5).toFixed(1)), basePrice: 0, trueValue: 0, desc: "神秘物品" };
+            if (type === 'intel') { item.boost = 0; item.basePrice = 150; item.trueValue = 200; }
+
+            if (API_KEY) {
+                const prompt = `NPC: ${npc.name} (${npc.faction})。玩家背景: ${gameState.role}。生成一個${type}類型物品。
+                同時生成兩個簡短的交易成功與取消的台詞(與NPC個性及物品相關)。
+                JSON: {"name": "名稱", "desc": "描述", "basePrice": 數字(100-1000), "success_msg": "交易成功台詞", "cancel_msg": "交易取消台詞"}`;
+                try {
+                    const jsonStr = await callGemini(prompt, true);
+                    if(jsonStr) {
+                        const aiItem = JSON.parse(jsonStr);
+                        item.name = aiItem.name; item.desc = aiItem.desc;
+                        item.success_msg = aiItem.success_msg;
+                        item.cancel_msg = aiItem.cancel_msg;
+                        if(type !== 'intel') { item.basePrice = aiItem.basePrice; item.trueValue = Math.floor(aiItem.basePrice * (Math.random() * 0.4 + 0.8)); }
+                        else { item.basePrice = Math.max(50, aiItem.basePrice); item.trueValue = item.basePrice + 50; }
+                    }
+                } catch(e) {}
+            } 
+            
+            if (item.name === "未知物品") {
+                const mock = ITEM_TEMPLATES.find(i => i.type === type) || ITEM_TEMPLATES[0];
+                item.name = mock.name; item.desc = mock.desc;
+                item.success_msg = "合作愉快。"; item.cancel_msg = "哼，浪費時間。";
+                if(type !== 'intel') { item.basePrice = mock.basePrice; item.trueValue = mock.trueValue; }
+                else { item.basePrice = 150; item.trueValue = 200; }
+            }
+            return item;
+        }
+
+        async function findTradeTarget() {
+            if (gameState.stamina < 2) { addLog("體力不足 (需要 2)。", "danger"); return; }
+            gameState.stamina -= 2;
+
+            const locFaction = LOCATIONS[gameState.location].faction;
+            let availableNpcs = NPCS.filter(n => n.faction === locFaction);
+            if (availableNpcs.length === 0) availableNpcs = NPCS;
+            
+            let npc = { ...availableNpcs[Math.floor(Math.random() * availableNpcs.length)] };
+
+            if (API_KEY) {
+                const locName = LOCATIONS[gameState.location].name;
+                const context = gameState.bgStory ? `玩家背景: "${gameState.bgStory.substring(0, 100)}..."` : "隨機路人";
+                const prompt = `${context}。在${locName}生成NPC。JSON: {"name": "名字", "desc": "描述"}`;
+                addLog("正在尋找交易對象...", "system");
+                startProcessing(); // 啟用防呆
+                try {
+                    const jsonStr = await callGemini(prompt, true);
+                    if(jsonStr) { const aiNpc = JSON.parse(jsonStr); if (aiNpc.name) { npc.name = aiNpc.name; npc.desc = aiNpc.desc; } }
+                } catch(e) {}
+                stopProcessing(); // 解除防呆
+            }
+
+            const item = await generateDynamicItem(npc);
+            
+            let negotiationOptions = null;
+            if (API_KEY) {
+                const prompt2 = `針對物品「${item.name}」(${item.desc})，生成2個簡短殺價藉口(20字內)。JSON陣列: ["理由1", "理由2"]`;
+                startProcessing(); // 啟用防呆
+                try { 
+                    const jsonStr2 = await callGemini(prompt2, true); 
+                    // 修正: 確保即使 API 失敗 (返回 null) 也能安全解析
+                    if(jsonStr2) negotiationOptions = JSON.parse(jsonStr2); 
+                } catch(e) {
+                    // 如果解析或調用失敗，使用預設值
+                    negotiationOptions = null; 
+                }
+                stopProcessing(); // 解除防呆
+            }
+            // 使用預設值作為最終回退
+            npc.negotiationOptions = negotiationOptions || NEGOTIATION_PRESETS;
+
+            const rep = gameState.reputation[npc.faction] || 0;
+            let priceMod = 1.0 - (rep * 0.01); if (priceMod < 0.5) priceMod = 0.5;
+            const currentLoc = gameState.location;
+            
+            const typeModData = gameState.marketModifiers[item.type];
+            if (typeModData && (!typeModData.location || typeModData.location === currentLoc)) priceMod *= typeModData.val;
+
+            const totalLuck = gameState.attributes.luck + gameState.luckBoost;
+            if (totalLuck > 5) priceMod -= 0.05;
+
+            item.basePrice = Math.floor(item.basePrice * (0.8 + Math.random() * 0.4) * priceMod);
+            gameState.npcCurrent = { npc, item };
+            
+            clearControls(); updateUI();
+            addLog(`你遇到 **${npc.name}**。`, "npc");
+            addLog(`${npc.desc}`, "normal");
+            if (rep > 10) addLog(`(關係良好) NPC 對你點頭致意。`, "system");
+
+            let btnText = `查看貨品 (${TYPE_TRANSLATIONS[item.type]})`;
+            createBtn(btnText, () => showBuyMenu(npc, item), 'gold');
+            createBtn("兜售我的物品", () => showSellMenu(npc), 'primary');
+            createBtn("離開", () => visitLocation(gameState.location), 'gray');
+        }
+
+        function showBuyMenu(npc, item) {
+            clearControls();
+            let typeText = TYPE_TRANSLATIONS[item.type];
+            let boostText = item.type==='intel' ? '獲得新情報' : `${typeText} +${item.boost}`;
+            
+            addLog(`${npc.name}: 「這可是 **${item.name}** (${typeText})。${item.desc}」`, "npc");
+            addLog(`效果預估: ${boostText}`, "important");
+            addLog(`價格: ${item.basePrice} G`, "system");
+            const totalInsight = gameState.attributes.insight; 
+            if (totalInsight >= 2) addLog(`(洞察) 市場估值約: ${item.trueValue} G`, "system");
+
+            createBtn(`購買 (-${item.basePrice} G)`, () => buyItemAttempt(item.basePrice), 'gold');
+            createBtn("嘗試殺價 (談判)", () => startNegotiation('buy'), 'primary');
+            createBtn("不買了", () => {
+                addLog(`${npc.name}: 「${item.cancel_msg || "哼，浪費時間。"}」`, "npc");
+                visitLocation(gameState.location);
+            }, 'gray');
+        }
+
+        function showSellMenu(npc) {
+            clearControls();
+            const sellableItems = gameState.inventory.filter(i => i.type !== 'intel');
+            if (sellableItems.length === 0) { addLog(`${npc.name}: 「你兩手空空，是來消遣我的嗎？」`, "npc"); createBtn("抱歉 (離開)", () => visitLocation(gameState.location), 'gray'); return; }
+            addLog(`${npc.name}: 「你想賣什麼？」`, "npc");
+            sellableItems.forEach((invItem) => {
+                const rep = gameState.reputation[npc.faction] || 0;
+                let marketFactor = 1.0;
+                const typeModData = gameState.marketModifiers[invItem.type];
+                if (typeModData && (!typeModData.location || typeModData.location === gameState.location)) marketFactor = typeModData.val;
+                
+                let offerMod = (0.6 + (gameState.attributes.negotiation * 0.05) + (rep * 0.01)) * marketFactor;
+                const offerPrice = Math.floor(invItem.trueValue * offerMod);
+                createBtn(`${invItem.name} (報價: ${offerPrice} G)`, () => sellItemAttempt(invItem, offerPrice), 'gold');
+            });
+            createBtn("算了", () => visitLocation(gameState.location), 'gray');
+        }
+
+        function buyItemAttempt(price) {
+            if (gameState.gold >= price) executeBuy(price);
+            else { 
+                // 修正 2: 購買契約觸發邏輯 - 若 > 3倍資金，不觸發契約
+                if (price >= 3 * Math.max(1, gameState.gold)) {
+                    addLog("惡魔嘲笑你：『想買這個？你的靈魂還不值那麼多錢。滾吧！』", "devil-text");
+                    return; 
+                }
+                gameState.pendingPurchase = price; 
+                triggerDevilEvent('shopping', price); 
+            }
+        }
+
+        async function executeBuy(price) {
+            gameState.gold -= price;
+            const item = gameState.npcCurrent.item;
+            const faction = gameState.npcCurrent.npc.faction;
+            const npc = gameState.npcCurrent.npc;
+            gameState.reputation[faction] += 1;
+            
+            addLog(`${npc.name}: 「${item.success_msg || "合作愉快。"}」 (${FACTION_NAMES[faction]}聲望 +1)`, "npc");
+            addDevilComment('trade');
+
+            if (item.type === 'intel') {
+                addLog(`你購買了情報！`, "important");
+            } else {
+                gameState.inventory.push(item);
+                addLog(`成交！獲得 [${item.name}]。${TYPE_TRANSLATIONS[item.type] || item.type} +${item.boost}`, "important");
+            }
+            updateUI(); visitLocation(gameState.location);
+        }
+
+        function sellItemRef(itemRef, price) {
+            const index = gameState.inventory.indexOf(itemRef);
+            if (index > -1) {
+                const faction = gameState.npcCurrent.npc.faction;
+                gameState.reputation[faction] += 1;
+                
+                if (gameState.contractSigned) {
+                    const bonus = Math.floor(price * 0.5); 
+                    price += bonus;
+                    addLog(`惡魔低語: 『我幫你抬了價...多賺了 ${bonus} G。』`, "danger");
+                }
+                
+                gameState.gold += price;
+                gameState.inventory.splice(index, 1);
+                addLog(`你以 ${price} G 賣出了 [${itemRef.name}]。 (${FACTION_NAMES[faction]}聲望 +1)`, "important");
+                addDevilComment('trade');
+                updateUI(); visitLocation(gameState.location);
+            }
+        }
+
+        function sellItemAttempt(itemRef, price) {
+            sellItemRef(itemRef, price);
+        }
+
+        function startNegotiation(type) {
+            clearControls();
+            addLog("請選擇或輸入你的話術:", "system");
+            ui.inputContainer.classList.remove('hidden');
+            // 修正 1: 清空輸入框
+            document.getElementById('player-input').value = ''; 
+            document.getElementById('player-input').placeholder = "輸入你的回應..."; 
+
+            let presets = gameState.npcCurrent.npc.negotiationOptions || NEGOTIATION_PRESETS;
+            ui.presetOptions.innerHTML = '';
+            presets.slice(0, 2).forEach(text => {
+                const btn = document.createElement('button');
+                btn.className = "text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-3 rounded border border-gray-600 text-left truncate max-w-[200px] flex-shrink-0";
+                btn.innerText = text;
+                btn.onclick = () => processNegotiation(text, type);
+                ui.presetOptions.appendChild(btn);
+            });
+            document.getElementById('submit-input').onclick = () => {
+                const text = document.getElementById('player-input').value;
+                if (!text) return;
+                processNegotiation(text, type);
+            };
+        }
+
+        async function processNegotiation(text, type) {
+            ui.inputContainer.classList.add('hidden');
+            ui.presetOptions.innerHTML = '';
+            addLog(`你: 「${text}」`, "player");
+            addLog("談判判定中...", "system");
+            startProcessing(); // 啟用防呆
+
+            let dc = 12; let npcResponse = "這...";
+            if (API_KEY) {
+                const npc = gameState.npcCurrent.npc;
+                const item = gameState.npcCurrent.item;
+                const prompt = `NPC: ${npc.name} (${npc.personality}) 正在賣 ${item.name} (${item.basePrice}G)。玩家說: "${text}"。請以JSON格式回傳: {"dc": number (1-20), "response": "NPC的簡短回應"}`;
+                try { const jsonStr = await callGemini(prompt, true); const result = JSON.parse(jsonStr); dc = result.dc; npcResponse = result.response; } catch(e) {}
+            }
+            if (gameState.contractSigned) { dc += 5; addLog("(契約詛咒) 你的靈魂散發著不詳氣息，對方戒心提高了。", "danger"); }
+
+            addLog(`${gameState.npcCurrent.npc.name}: 「${npcResponse}」`, "npc");
+            addLog(`(系統) 談判難度 DC: ${dc}`, "system");
+
+            setTimeout(() => {
+                const roll = Math.floor(Math.random() * 20) + 1;
+                const totalLuck = gameState.attributes.luck + gameState.luckBoost;
+                const total = roll + gameState.attributes.negotiation + Math.floor(totalLuck / 2);
+                addLog(`🎲 擲骰: ${roll} + 技能(${gameState.attributes.negotiation}) + 運氣修正(${Math.floor(totalLuck/2)}) = ${total}`, "important");
+                clearControls();
+                stopProcessing(); // 解除防呆
+
+                if (total >= dc) {
+                    const discount = Math.floor(gameState.npcCurrent.item.basePrice * 0.7);
+                    addLog(`談判成功！價格降低至 ${discount} G。`, "important");
+                    createBtn(`成交 (付 ${discount} G)`, () => buyItemAttempt(discount), 'gold');
+                    createBtn(`取消交易`, () => { 
+                        addLog(`${gameState.npcCurrent.npc.name}: 「${gameState.npcCurrent.item.cancel_msg || "浪費我的口水。"}」 (${FACTION_NAMES[gameState.npcCurrent.npc.faction]}聲望 -1)`, "npc");
+                        gameState.reputation[gameState.npcCurrent.npc.faction] -= 1;
+                        visitLocation(gameState.location); 
+                    }, 'gray');
+                } else {
+                    addLog(`談判失敗！對方拒絕降價。 (${FACTION_NAMES[gameState.npcCurrent.npc.faction]}聲望 -1)`, "danger");
+                    gameState.reputation[gameState.npcCurrent.npc.faction] -= 1;
+                    setTimeout(() => visitLocation(gameState.location), 1500);
+                }
+            }, 1000);
+        }
+
+        async function gatherIntel(manual = true) {
+            if (manual) {
+                if (gameState.stamina < 1) { addLog("體力不足 (需要 1)。", "danger"); return; } 
+                const btn = document.querySelector('button[onclick*="gatherIntel"]');
+                if(btn) { btn.innerText = "打探中..."; btn.disabled = true; }
+                if (Math.random() < 0.2) {
+                     const currentFaction = LOCATIONS[gameState.location].faction;
+                     gameState.reputation[currentFaction] -= 2;
+                     addLog(`⚠️ 你打探情報的行為引起了懷疑！ (${FACTION_NAMES[currentFaction]}聲望 -2)`, "danger");
+                }
+                addLog(`正在打探消息...`, "system");
+                startProcessing(); // 啟用防呆
+                await new Promise(r => setTimeout(r, 1000)); 
+                gameState.stamina -= 1; 
+            } else {
+                addLog("正在收集今日情報...", "system");
+                startProcessing(); // 啟用防呆
+                gameState.inventory = gameState.inventory.filter((item, index) => {
+                    if (item.type === 'intel' && Math.random() < 0.3) {
+                         addLog(`【過期情報】: ${item.summary} 已失效`, "system");
+                         return false; 
+                    }
+                    return true;
+                });
+            }
+            
+            try {
+                const types = ['negotiation', 'insight', 'luck', 'intel'];
+                const targetType = types[Math.floor(Math.random() * types.length)]; 
+                const effectType = Math.random() > 0.5 ? 'high' : 'low';
+                const multiplier = effectType === 'high' ? 1.5 : 0.5;
+                
+                let targetLoc = null; let targetLocName = "全市場";
+                if (Math.random() > 0.5) {
+                    const keys = Object.keys(LOCATIONS);
+                    targetLoc = keys[Math.floor(Math.random() * keys.length)];
+                    targetLocName = LOCATIONS[targetLoc].name;
+                }
+                
+                let rumorText = "";
+
+                if (API_KEY) {
+                    const locContext = targetLoc ? `地點:${targetLocName}` : "地點:全市場";
+                    // 修正 2: 修改 Prompt，結合玩家背景
+                    const prompt = `玩家職業: ${gameState.role}, 玩家背景: ${gameState.bgStory.substring(0, 100)}...。生成一條奇幻RPG市場情報。主題：${TYPE_TRANSLATIONS[targetType]}類物品價格${effectType === 'high' ? '暴漲' : '暴跌'}。${locContext}。原因與玩家背景應有微弱聯繫。請務必使用繁體中文，不要包含字數統計，不要有引號，30字以內。`;
+                    try {
+                       const aiRumor = await callGemini(prompt);
+                       if (aiRumor) rumorText = aiRumor; else rumorText = "市場風雲變幻...";
+                    } catch(e) { rumorText = "市場風雲變幻..."; }
+                } else {
+                    const typeName = TYPE_TRANSLATIONS[targetType];
+                    rumorText = effectType === 'high' ? `聽說${targetLocName}的${typeName}類物品現在非常搶手，價格正在上漲。` : `最近${locContext}的${typeName}類物品供過於求，價格下跌了。`;
+                }
+                
+                gameState.lastIntelRumor = rumorText; 
+                
+                const logType = manual ? "important" : "system";
+                const prefix = manual ? "獲得情報: " : "【每日情報】: ";
+                
+                const typeName = TYPE_TRANSLATIONS[targetType] || targetType;
+                const trendText = effectType === 'high' ? '價格上漲' : '價格下跌';
+                let summary = `${typeName}類 ${trendText}`;
+                if (targetLoc) {
+                    summary = `${summary} [${targetLocName}]`;
+                }
+
+                addLog(`${prefix}${rumorText.replace(/【.*?】: /g, '')} (${typeName} x${multiplier})`, logType);
+                
+                gameState.inventory.push({
+                    name: "情報 #" + (Math.floor(Math.random()*1000)),
+                    summary: summary, 
+                    desc: rumorText + ` (影響: ${targetLocName} ${typeName} 價格 x${multiplier})`, 
+                    basePrice: 50 + Math.floor(Math.random()*150),
+                    trueValue: 50 + Math.floor(Math.random()*150),
+                    type: 'intel'
+                });
+                
+                if (!manual) {
+                    gameState.marketModifiers = {}; 
+                    gameState.marketModifiers[targetType] = { val: multiplier, location: targetLoc };
+                }
+
+                updateUI();
+                if (manual) { 
+                    switchTab('intel'); 
+                    visitLocation(gameState.location); 
+                }
+            } finally {
+                stopProcessing(); // 解除防呆
+                if (!manual) {
+                    updateUI();
+                    enterMainMap();
+                }
+            }
+        }
+
+        function bankAction() {
+            if (gameState.stamina < 1) { addLog("體力不足 (需要 1)。", "danger"); return; }
+            clearControls(); gameState.stamina -= 1; updateUI();
+            const currentRate = (gameState.interestRate * 100).toFixed(1);
+            addLog(`銀行櫃檯: 「今日利率為 ${currentRate}%。存款手續費 10 G。」`, "npc");
+            const showBankMenu = () => {
+                clearControls();
+                createBtn("存入 (手續費 10 G)", () => {
+                    if (gameState.gold <= 10) { addLog("現金不足以支付手續費。", "danger"); showBankMenu(); return; }
+                    showSliderInput("存入金額", gameState.gold - 10, (val) => { gameState.gold -= (val + 10); gameState.bank += val; addLog(`存入 ${val} G。`, "important"); updateUI(); showBankMenu(); }, showBankMenu);
+                }, 'primary');
+                createBtn("取出 (免手續費)", () => {
+                    if (gameState.bank <= 0) { addLog("你沒有存款。", "danger"); showBankMenu(); return; }
+                    showSliderInput("取出金額", gameState.bank, (val) => { gameState.bank -= val; gameState.gold += val; addLog(`取出 ${val} G。`, "important"); updateUI(); showBankMenu(); }, showBankMenu);
+                }, 'primary');
+                createBtn("離開", () => visitLocation('merchant_guild'), 'gray');
+            };
+            showBankMenu();
+        }
+
+        function gambleAction(quiet = false) {
+            clearControls();
+            if (!quiet) addLog("荷官: 「歡迎來到深淵賭場。敢來試試手氣嗎？」", "npc");
+            ui.inputContainer.classList.remove('hidden');
+            const input = document.getElementById('player-input');
+            const submit = document.getElementById('submit-input');
+            input.value = ''; input.placeholder = `輸入賭注 (現有: ${gameState.gold} G)...`;
+            submit.onclick = () => {
+                const bet = parseInt(input.value);
+                if (isNaN(bet) || bet <= 0) { addLog("荷官: 『請輸入有效的金額！沒錢就別下注。』", "npc"); return; }
+                
+                if (bet > gameState.gold) {
+                     if (gameState.contractSigned) {
+                         addLog("荷官: 『哈哈，契約的奴隸！想跟我玩空手套白狼？』", "npc");
+                         return;
+                     }
+                     // 修正 2: 賭場契約邏輯
+                     const currentGold = Math.max(0, gameState.gold);
+                     let context = 'gambling_mid';
+                     let modalBet = bet; 
+
+                     if (bet >= 3 * currentGold) {
+                         context = 'gambling_high';
+                         modalBet = 3 * currentGold;
+                     } else if (bet < 666) {
+                         context = 'gambling_low';
+                         modalBet = bet;
+                     } else {
+                         context = 'gambling_mid';
+                         modalBet = bet; 
+                     }
+                     
+                     gameState.pendingBetAmount = modalBet; 
+                     gameState.forcedGamble = true; 
+                     triggerDevilEvent(context, modalBet); 
+                     return;
+                 }
+                executeGamble(bet, false);
+            };
+            createBtn("離開", () => { ui.inputContainer.classList.add('hidden'); visitLocation('black_market'); }, 'gray');
+        }
+
+        function executeGamble(bet, isProtected) {
+            if (gameState.stamina < 1) { addLog("體力不足 (需要 1)。", "danger"); ui.inputContainer.classList.add('hidden'); visitLocation('black_market'); return; }
+            gameState.stamina -= 1; 
+            
+            // If NOT protected (regular gamble), pay upfront.
+            if (!isProtected) gameState.gold -= bet; 
+            
+            updateUI(); ui.inputContainer.classList.add('hidden'); clearControls();
+            
+            const totalLuck = gameState.attributes.luck + gameState.luckBoost;
+            const playerBase = Math.floor(Math.random() * 12) + 1;
+            const playerRoll = playerBase + Math.floor(totalLuck / 2); 
+            const houseRoll = Math.floor(Math.random() * 0) + 1;
+            
+            addLog(`你擲出了 [${playerBase}] ${totalLuck>0 ? `+ 運氣(${Math.floor(totalLuck/3)})` : ''} = ${playerRoll} 點`, "important");
+            setTimeout(() => {
+                const finalHouseRoll = houseRoll + 3;
+                addLog(`荷官擲出了 ${finalHouseRoll} 點...`, "npc");
+                let win = playerRoll > finalHouseRoll; // House cheats
+                
+                if (playerRoll === finalHouseRoll) { 
+                    // 修正: 無論是否受保護，平局都退還賭注
+                    gameState.gold += bet; 
+                    addLog("平手。退還賭注。", "normal"); 
+                }
+                else if (win) {
+                    // Win Logic
+                    // Regular contract signed (not trigger moment) is x4
+                    const multiplier = gameState.contractSigned ? 4 : 2;
+                    const winAmount = bet * multiplier;
+                    gameState.gold += winAmount;
+                    if (gameState.contractSigned) addLog(`惡魔之力！你贏了 ${winAmount} G (4倍)！`, "danger");
+                    else addLog(`你贏了！獲得 ${winAmount} G。`, "important");
+                } else {
+                    // Lose Logic
+                    addLog("你輸了...", "danger");
+                    
+                    if (isProtected) {
+                        // 簽約當下的賭局輸了 -> 變為 6 G
+                        gameState.gold = 6;
+                        addLog("惡魔嘲笑著：『真遺憾...你的資產變成了 6 G。這就是代價。』", "danger");
+                    } else if (gameState.contractSigned) {
+                        // 簽約後的普通賭局輸了 -> 輸 4 倍 (已付 1x bet, 再扣 3x bet)
+                        const penalty = bet * 3;
+                        gameState.gold -= penalty;
+                        addLog(`惡魔索取了額外代價... (額外扣除 ${penalty} G，總計輸 4 倍)`, "danger");
+                    }
+                }
+                updateUI(); gambleAction(true); 
+                addDevilComment('gamble');
+            }, 1000);
+        }
+
+        async function endDay() {
+            startProcessing();
+            gameState.stamina = gameState.maxStamina; 
+            const totalWealth = gameState.gold + gameState.bank;
+            if (totalWealth >= gameState.goal) { triggerVictory(); return; }
+            gameState.interestRate = 0.02 + Math.random() * 0.06;
+
+
+            // 修正 1: 銀行存款計算 (確保在支付生活費前計算)
+            if (gameState.bank > 0) {
+                const interest = Math.floor(gameState.bank * gameState.interestRate);
+                gameState.bank += interest;
+                addLog(`銀行利息入帳: ${interest} G`, "important");
+            }
+
+            //await gatherIntel(false);
+
+            const cost = gameState.livingCost;
+            gameState.day += 1;
+            // 修正 2: 支付生活費前的負資產處理
+            let finalGoldAfterCost = gameState.gold - cost;
+
+            if (finalGoldAfterCost >= 0) {
+                gameState.gold -= cost;
+                addLog(`支付生活費: -${cost} G`, "system");
+                addLog("你平安度過了一晚。", "normal");
+                updateUI(); // 顯式更新 UI 確保生活費扣除顯示
+                // gatherIntel(false);
+                gameState.stamina = gameState.maxStamina; 
+                addLog(`--- 第 ${gameState.day} 天 ---`, "system");
+                //gameState.interestRate = 0.02 + Math.random() * 0.06;
+                addLog(`今日銀行利率: ${(gameState.interestRate*100).toFixed(1)}%`, "system");
+                //await gatherIntel(false);
+                updateUI(); // 顯式更新 UI 確保利息顯示
+                if (gameState.day > gameState.maxDays) {
+                    stopProcessing(); // 解除防呆
+
+                    ui.log.innerHTML = ''; // Clear log
+                    clearControls();
+                    const endingMessage = `
+                        <h1 class="text-4xl font-bold text-gray-500">期限已到</h1>
+                        <p class="text-gray-300">你未能湊齊贖金，家族的榮耀永遠消逝了。</p>
+                    `;
+                    addLog(endingMessage, 'story');
+                    createBtn("重新開始", resetGame, 'primary');
+                    gameState.gameOver = true;
+                } 
+            } else {
+                // Not enough money -> Contract Trigger
+                
+                if (gameState.contractSigned) {
+                    stopProcessing(); // 解除防呆
+
+                    ui.log.innerHTML = ''; 
+                    clearControls();
+                    const endingMessage = `
+                        <h1 class="text-4xl font-bold text-red-600">靈魂收割</h1>
+                        <p class="text-gray-300">你無法支付生活費，惡魔依約收走了你的靈魂。</p>
+                    `;
+                    addLog(endingMessage, 'danger');
+                    createBtn("墮入地獄 (重啟)", resetGame, 'danger');
+                    gameState.gameOver = true;
+                } else {
+                    // 修正 2: 設置現金為 0，避免負值傳遞到模態框
+                    gameState.gold = 0; 
+                    updateUI();
+                    stopProcessing(); // 在彈出模態框前解除防呆
+                    triggerDevilEvent('survival', 0); 
+                }
+            }
+            //startProcessing();
+            //gameState.day += 1;
+            if (gameState.contractSigned) {
+                await generateDevilGreeting();
+            }
+            //await gatherIntel(false);
+            stopProcessing();
+
+            if (!gameState.gameOver) {
+                await gatherIntel(false);
+                stopProcessing(); // 確保在進入下一天地圖時解除防呆
+            }
+        }
+
+        function triggerDevilEvent(context, value) {
+            const modal = document.getElementById('event-modal');
+            const content = document.getElementById('modal-content');
+            const actions = document.getElementById('modal-actions');
+            modal.classList.remove('hidden');
+            document.getElementById('modal-title').innerText = "惡魔的低語";
+            
+            let flavorText = "", confirmAction = "";
+            let terms = "";
+            let commonTerms = `<li>每日生活費 <span class="text-red-400">翻倍 (200 G)</span></li><li>談判難度 <span class="text-red-400">大幅提升 (+5 DC)</span></li>`;
+
+
+            if (context === 'shopping') {
+                flavorText = `<p class="devil-text font-bold mt-4">『呵呵呵...慾望是個好東西。』</p><p>惡魔可以幫你買單。</p>`;
+                terms = `<li>惡魔代付購買費用</li><li>現有資金設定為 <strong>666 G</strong></li>`;
+                confirmAction = `signContract('shopping', ${value})`; 
+            } 
+            else if (context === 'survival') {
+                flavorText = `<p class="devil-text font-bold mt-4">『可憐的小東西...我可以幫你還債。』</p>`;
+                terms = `<li>惡魔代付生活費</li><li>現有資金設定為 <strong>666 G</strong></li>`;
+                confirmAction = `signContract('survival', 0)`;
+            }
+            else if (context === 'gambling_high') {
+                flavorText = `<p class="devil-text font-bold mt-4">『你的貪婪令我愉悅...我給你足夠的賭本。』</p><p class="text-red-500 font-bold">但你太貪心了，賭資將強制設定為你現有資金的 3 倍，並 ALL IN。</p>`;
+                terms = `<li>賭資設定為 <strong>${value} G</strong> (3x資金)</li><li><strong>強制 ALL IN</strong></li><li>賭場獲利更高，風險更高</li>`; // 修正 1: 簡化條款
+                confirmAction = `signContract('gambling_high', ${value})`; 
+            }
+            else if (context === 'gambling_mid') {
+                flavorText = `<p class="devil-text font-bold mt-4">『賭徒最需要的本錢，我給你。』</p><p>這把必須 ALL IN。</p>`;
+                terms = `<li>強制 <strong>ALL IN</strong> (賭資 ${value} G)</li><li>賭場獲利更高，風險更高</li>`; // 修正 1: 簡化條款
+                confirmAction = `signContract('gambling_mid', ${value})`; 
+            }
+            else if (context === 'gambling_low') {
+                flavorText = `<p class="devil-text font-bold mt-4">『這點小錢...不如我直接給你個整數吧。』</p>`;
+                terms = `<li>現有資金設定為 <strong>666 G</strong></li><li>不強制 ALL IN (自由下注)</li><li>賭場獲利更高，風險更高</li>`; // 修正 1: 簡化條款
+                confirmAction = `signContract('gambling_low', ${value})`; 
+            }
+
+            // 修正 1: 確保契約條款中的粗體文字正確顯示
+            content.innerHTML = `${flavorText}<div class="bg-gray-900 p-4 rounded border border-red-900 mt-4 text-sm"><h3 class="text-red-400 font-bold">契約條款</h3><ul class="text-left list-disc pl-5 mt-2 space-y-1">${terms.replace(/<strong>/g, '<strong class="text-yellow-400">')}${commonTerms}</ul></div>`;
+            
+            actions.innerHTML = `<button onclick="${confirmAction}" class="btn-blood-contract text-white font-bold py-3 px-8 rounded shadow-lg border transform hover:scale-105 transition-all"><i class="fas fa-file-signature mr-2"></i>簽訂契約</button><button onclick="rejectContract('${context}')" class="bg-gray-600 hover:bg-gray-500 text-gray-300 font-bold py-3 px-8 rounded border border-gray-500"><i class="fas fa-cross mr-2"></i>我再想想</button>`;
+        }
+        
+        function signContract(context, value) {
+            gameState.contractSigned = true;
+            gameState.livingCost = 200;
+            // 修正 2: 勢力數值極端化
+            gameState.reputation.demon = 999; 
+            gameState.reputation.church = -666;
+            
+            document.getElementById('event-modal').classList.add('hidden');
+            
+            let logMsg = "";
+
+            if (context === 'survival') {
+                // 修正 2: 已經在 endDay 中將 gold 設為 0
+                gameState.gold = 666;
+                logMsg = "惡魔支付了你的帳單，並將餘額設定為 **666 G**。";
+                addLog(logMsg, "danger");
+                enterMainMap();
+            } 
+            else if (context === 'shopping') {
+                // 買賣契約 - 惡魔代付，餘額變 666
+                // 先執行購買 (扣款)，所以要設定成 (價格 + 666)，這樣扣完剛好剩 666
+                gameState.gold = 666 + value;
+                logMsg = `惡魔代付了款項，交易後你的餘額將是 **666 G**。`;
+                addLog(logMsg, "danger");
+                updateUI();
+                executeBuy(value);
+            }
+            else if (context.startsWith('gambling')) {
+                if (context === 'gambling_low') {
+                    // 小額賭注 - 資金變 666，不強制 ALL IN
+                    gameState.gold = 666;
+                    logMsg = `惡魔將你的資金設定為 **666 G**。`;
+                    addLog(logMsg, "danger");
+                    updateUI();
+                    executeGamble(value, true); // isProtected = true
+                } else {
+                    // 強制 ALL IN (High / Mid)
+                    // 資金被歸零，進入賭局判定，輸了變 6G，贏了 x4。
+                    gameState.gold = 0; 
+                    logMsg = `惡魔提供了籌碼... 強制 ALL IN **${value} G**！`;
+                    addLog(logMsg, "danger");
+                    updateUI();
+                    executeGamble(value, true); // isProtected = true
+                }
+            }
+        }
+
+        function rejectContract(context) {
+            document.getElementById('event-modal').classList.add('hidden');
+
+            if (context === 'shopping') {
+                gameState.pendingPurchase = null; 
+                addLog("你拒絕了誘惑，但這筆交易也失敗了。", "normal");
+                visitLocation(gameState.location);
+                return;
+            }
+            if (context.startsWith('gambling')) { 
+                gameState.pendingBetAmount = null; 
+                ui.inputContainer.classList.add('hidden'); 
+                visitLocation('black_market'); 
+                return;
+            }
+            
+            ui.log.innerHTML = '';
+            clearControls();
+            const endingMessage = `
+                <h1 class="text-4xl font-bold text-gray-500">凍死街頭</h1>
+                <p class="text-gray-300">身無分文的你，在寒冷的夜裡結束了旅程。</p>
+            `;
+            addLog(endingMessage, 'story');
+            stopProcessing();
+            createBtn("重新開始", resetGame, 'primary');
+            gameState.gameOver = true;
+        }
+
+        // ... existing functions ...
+        function triggerVictory() {
+            const modal = document.getElementById('event-modal');
+            const content = document.getElementById('modal-content');
+            const actions = document.getElementById('modal-actions');
+            modal.classList.remove('hidden');
+            document.getElementById('modal-title').innerText = "命運的終點";
+            content.innerHTML = `<p>你成功籌集了 ${gameState.goal.toLocaleString()} 金幣！</p><p class="text-sm text-gray-400">現在，你有足夠的力量來決定這筆錢的去向...</p>`;
+            let btns = `<button onclick="showEnding('merchant')" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 px-4 rounded w-full">重建商會</button>
+                         <button onclick="showEnding('church')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded w-full mt-2">捐贈教會</button>`;
+            if (gameState.contractSigned) btns += `<button onclick="showEnding('demon')" class="bg-red-800 hover:bg-red-700 text-white font-bold py-3 px-4 rounded w-full mt-2">成為魔王</button>`;
+            actions.innerHTML = `<div class="flex flex-col gap-2 mt-4 w-full">${btns}</div>`;
+        }
+
+        async function showEnding(type) { 
+            const modal = document.getElementById('event-modal');
+            const content = document.getElementById('modal-content');
+            const actions = document.getElementById('modal-actions');
+            
+            content.innerHTML = `<p class="text-yellow-400 animate-pulse text-center">正在編織你的命運結局...</p>`;
+            actions.innerHTML = '';
+            startProcessing(); // 啟用防呆
+
+            let story = "";
+            const totalWealth = gameState.gold + gameState.bank;
+            
+            if (API_KEY) {
+                let endingPrompt = `RPG結局生成。
+                玩家資訊: 職業[${gameState.role}], 最終資產[${totalWealth}G], 契約狀態[${gameState.contractSigned ? '已簽約' : '未簽約'}], 淨化狀態[${gameState.isPurified ? '已淨化(偽)' : '無'}].
+                玩家選擇了結局: `;
+                if (type === 'merchant') endingPrompt += "重建商會 (正統結局).若有簽約，這裡要凸顯惡魔的嘲笑，如果已經淨化，還是要有詭譎的氣息";
+                else if (type === 'demon') endingPrompt += "成為魔王 (墮落結局). 來自惡魔的嘲弄，契約不管有沒有被淨化最終都是不好的結局";
+                else if (type === 'church') endingPrompt += "捐贈教會. 捐贈金錢給聖光教堂，注意：若玩家已淨化契約，這其實是個諷刺結局，因為教會與惡魔勾結，玩家的贖罪金只是左手轉右手。惡魔會嘲笑玩家的愚蠢。若未簽約則為普通結局，可以暗示教會氣氛很奇怪。";
+                endingPrompt += `\n背景故事參考: ${gameState.bgStory.substring(0, 100)}...
+                請用繁體中文寫一段約200字的結局故事，根據上述條件展現玩家的命運。`;
+                
+                try {
+                    story = await callGemini(endingPrompt);
+                } catch(e) { story = "命運之輪停止了轉動..."; }
+            } else {
+                if (type === 'merchant') story = "你還清了債務，重建了父親的商會。你的名字成為了傳奇，連惡魔都不敢輕易招惹你。";
+                else if (type === 'demon') story = "你沒有還債，而是買下了半個魔界的兵權。惡魔驚訝於你的貪婪與手段，擁立你為新一代的深淵領主。";
+                else if (gameState.isPurified) story = "你將財富捐給了教會，以為洗清了罪孽。但當主教接過金幣時，你看到了他袖口下的惡魔印記——和你曾經擁有的一模一樣。惡魔的笑聲在教堂迴盪：『歡迎回來，傻瓜。』";
+                else story = "你將財富捐給了教會，獲得了聖徒的稱號。但在受勳儀式的當晚，你在主教的密室裡看到了一張熟悉的羊皮紙——那正是你父親簽下的契約。";
+            }
+            content.innerHTML = `<div class="text-left leading-relaxed">${marked.parse(story)}</div>`;
+            actions.innerHTML = `<button onclick="resetGame()" class="bg-blue-600 text-white font-bold py-2 px-6 rounded">再次挑戰命運</button>`;
+
+            stopProcessing(); // 解除防呆
+        }
+    </script>
+</body>
+</html>
